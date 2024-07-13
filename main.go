@@ -101,9 +101,7 @@ func startServer(ctx context.Context, mode ServerMode) error {
 	}
 }
 
-func openAndRun(
-	ctx context.Context, mode ServerMode, st streams.Stream, closerCh chan<- io.Closer,
-) error {
+func openAndRun(ctx context.Context, mode ServerMode, st streams.Stream, closerCh chan<- io.Closer) error {
 	rdwr, err := st.Open(ServerModeFlags[mode])
 	if err != nil {
 		return err
