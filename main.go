@@ -115,13 +115,12 @@ func openAndRun(
 	}
 	switch mode {
 	case ReadMode:
-		err = readServer(rdwr)
+		return readServer(rdwr)
 	case WriteMode:
-		err = writeServer(ctx, rdwr)
+		return writeServer(ctx, rdwr)
 	default:
-		err = nil
+		return nil
 	}
-	return err
 }
 
 func readServer(r io.Reader) error {
