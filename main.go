@@ -12,7 +12,8 @@ import (
 	"os/signal"
 	"strings"
 	"time"
-	"wooperstream/streams"
+
+	"github.com/meowctl/wooperstream/streams"
 )
 
 type ServerMode int
