@@ -26,8 +26,7 @@ func NewStream() (Stream, error) {
 }
 
 type fifoStream struct {
-	name string
-
+	name     string
 	blocked  int
 	lastFlag int
 	done     chan struct{}
