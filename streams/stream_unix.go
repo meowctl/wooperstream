@@ -25,6 +25,8 @@ func NewStream() (Stream, error) {
 	}, nil
 }
 
+var ErrNotAFIFO = fmt.Errorf("file is not a fifo")
+
 type fifoStream struct {
 	name     string
 	blocked  int
@@ -64,7 +66,7 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 		st.lastFlag = flag
 		st.mu.Unlock()
 		// may block indefinitely
-		f, err := os.OpenFile(st.name, flag, os.ModeNamedPipe)
+		f, err := os.OpenFile(st.name, flag, 0)
 		st.mu.Lock()
 		st.blocked--
 		st.mu.Unlock()
@@ -76,7 +78,19 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 	}()
 	select {
 	case res := <-resCh:
-		return res.f, res.err
+		if res.err != nil {
+			return nil, res.err
+		}
+		info, err := res.f.Stat()
+		if err != nil {
+			res.f.Close()
+			return nil, err
+		}
+		if info.Mode()&os.ModeType != os.ModeNamedPipe {
+			res.f.Close()
+			return nil, &os.PathError{Op: "open", Path: st.name, Err: ErrNotAFIFO}
+		}
+		return res.f, nil
 	case <-st.done:
 		return nil, os.ErrClosed
 	}
@@ -94,9 +108,7 @@ func (st *fifoStream) Close() error {
 			}
 		}
 		st.mu.Unlock()
-		if err = os.Remove(st.name); err != nil {
-			err = fmt.Errorf("close %s: %w", st.name, err)
-		}
+		err = os.Remove(st.name)
 	})
 	return err
 }
@@ -113,7 +125,7 @@ func (st *fifoStream) unclog() error {
 	default:
 		return nil
 	}
-	fd, err := unix.Open(st.name, flag|unix.O_NONBLOCK|unix.O_CLOEXEC, uint32(os.ModeNamedPipe))
+	fd, err := unix.Open(st.name, flag|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return err
 	}
