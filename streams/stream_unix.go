@@ -103,6 +103,8 @@ func (st *fifoStream) Close() error {
 		close(st.done)
 		if st.blocked > 0 {
 			if err := st.unclog(); err != nil && errors.Is(err, unix.ENOENT) {
+				// original FIFO file has been deleted.
+				// goroutines that are still blocked on open will leak.
 				st.mu.Unlock()
 				return
 			}
