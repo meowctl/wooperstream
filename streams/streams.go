@@ -85,13 +85,19 @@ func (st *listenerStream) String() string {
 }
 
 var (
-	streamPid       = uint32(os.Getpid())
-	streamCounter   = uint32(1)
+	streamPid       uint32
+	streamCounter   uint32
 	streamCounterMu sync.Mutex
 )
 
 func getStreamName() string {
 	streamCounterMu.Lock()
+	// first run
+	if streamCounter == 0 {
+		streamPid = uint32(os.Getpid())
+		streamCounter = 1
+	}
+
 	// counter (1~20bit) + pid (1~32bit) + random (12bit)
 	streamId := (uint64(streamCounter)<<max(1, bits.Len32(streamPid))|uint64(streamPid))<<12 | rand.Uint64N(1<<12)
 
