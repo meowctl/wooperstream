@@ -16,7 +16,7 @@ const CurrentStreamImpl = UnixFIFOStreamImpl
 
 func NewStream() (Stream, error) {
 	name := filepath.Join(os.TempDir(), getStreamName())
-	if err := unix.Mkfifo(name, 0660); err != nil {
+	if err := unix.Mkfifo(name, 0666); err != nil {
 		return nil, err
 	}
 	return &fifoStream{
@@ -66,7 +66,7 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 		st.lastFlag = flag
 		st.mu.Unlock()
 		// may block indefinitely
-		f, err := os.OpenFile(st.name, flag, 0)
+		f, err := os.OpenFile(st.name, flag, 0600)
 		st.mu.Lock()
 		st.blocked--
 		st.mu.Unlock()
@@ -129,7 +129,8 @@ func (st *fifoStream) unclog() error {
 	if err != nil {
 		return err
 	}
-	return unix.Close(fd)
+	unix.Close(fd)
+	return nil
 }
 
 func (st *fifoStream) Scheme() string {
