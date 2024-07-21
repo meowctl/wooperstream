@@ -47,7 +47,7 @@ func (st *fifoStream) isClosed() bool {
 
 func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 	if st.isClosed() {
-		return nil, os.ErrClosed
+		return nil, &os.PathError{Op: "open", Path: st.name, Err: os.ErrClosed}
 	}
 
 	type result struct {
@@ -92,7 +92,7 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 		}
 		return res.f, nil
 	case <-st.done:
-		return nil, os.ErrClosed
+		return nil, &os.PathError{Op: "open", Path: st.name, Err: os.ErrClosed}
 	}
 }
 
