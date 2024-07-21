@@ -125,9 +125,18 @@ func (st *fifoStream) unclog() error {
 	default:
 		return nil
 	}
-	fd, err := unix.Open(st.name, flag|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
-	if err != nil {
-		return err
+	var fd int
+	for {
+		var err error
+		fd, err = unix.Open(st.name, flag|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+		if err != nil {
+			// retry if interrupted by a signal
+			if errors.Is(err, unix.EINTR) {
+				continue
+			}
+			return err
+		}
+		break
 	}
 	unix.Close(fd)
 	return nil
