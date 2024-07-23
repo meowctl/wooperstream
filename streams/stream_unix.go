@@ -73,7 +73,9 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 		select {
 		case resCh <- result{f, err}:
 		case <-st.done:
-			f.Close()
+			if err == nil {
+				f.Close()
+			}
 		}
 	}()
 	select {
