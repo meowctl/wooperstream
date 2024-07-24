@@ -16,33 +16,18 @@ import (
 	"github.com/meowctl/wooperstream/streams"
 )
 
-type ServerMode int
-
-const (
-	ReadMode ServerMode = iota
-	WriteMode
+var (
+	ServerModes = [...]string{
+		os.O_RDONLY: "r",
+		os.O_WRONLY: "w",
+	}
+	ServerModeMap = map[string]int{
+		"r": os.O_RDONLY,
+		"w": os.O_WRONLY,
+	}
 )
 
-func (m ServerMode) AccessMode() int {
-	switch m {
-	case ReadMode:
-		return os.O_RDONLY
-	case WriteMode:
-		return os.O_WRONLY
-	default:
-		return -1
-	}
-}
-
-var ServerModes = [...]string{
-	ReadMode:  "r",
-	WriteMode: "w",
-}
-
-var ServerModeMap = map[string]ServerMode{
-	"r": ReadMode,
-	"w": WriteMode,
-}
+var ErrInvalidMode = fmt.Errorf("invalid mode")
 
 func main() {
 	os.Exit(run())
@@ -74,7 +59,14 @@ func run() (code int) {
 	}
 }
 
-func startServer(ctx context.Context, mode ServerMode) error {
+func supportsMode(mode int) bool {
+	return mode >= 0 && mode < len(ServerModes)
+}
+
+func startServer(ctx context.Context, mode int) error {
+	if !supportsMode(mode) {
+		return ErrInvalidMode
+	}
 	st, err := streams.NewStream()
 	if err != nil {
 		return err
@@ -107,11 +99,11 @@ func startServer(ctx context.Context, mode ServerMode) error {
 	}
 }
 
-func openAndRun(ctx context.Context, mode ServerMode, st streams.Stream, closerCh chan<- io.Closer) error {
-	if mode.AccessMode() == -1 {
-		return fmt.Errorf("invalid mode")
+func openAndRun(ctx context.Context, mode int, st streams.Stream, closerCh chan<- io.Closer) error {
+	if !supportsMode(mode) {
+		return ErrInvalidMode
 	}
-	rdwr, err := st.Open(mode.AccessMode())
+	rdwr, err := st.Open(mode)
 	if err != nil {
 		return err
 	}
@@ -122,9 +114,9 @@ func openAndRun(ctx context.Context, mode ServerMode, st streams.Stream, closerC
 		return ctx.Err()
 	}
 	switch mode {
-	case ReadMode:
+	case os.O_RDONLY:
 		return readServer(rdwr)
-	case WriteMode:
+	case os.O_WRONLY:
 		return writeServer(ctx, rdwr)
 	}
 	return nil
