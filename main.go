@@ -23,6 +23,17 @@ const (
 	WriteMode
 )
 
+func (m ServerMode) AccessMode() int {
+	switch m {
+	case ReadMode:
+		return os.O_RDONLY
+	case WriteMode:
+		return os.O_WRONLY
+	default:
+		return -1
+	}
+}
+
 var ServerModes = [...]string{
 	ReadMode:  "r",
 	WriteMode: "w",
@@ -31,11 +42,6 @@ var ServerModes = [...]string{
 var ServerModeMap = map[string]ServerMode{
 	"r": ReadMode,
 	"w": WriteMode,
-}
-
-var ServerModeFlags = [...]int{
-	ReadMode:  os.O_RDONLY,
-	WriteMode: os.O_WRONLY,
 }
 
 func main() {
@@ -102,7 +108,10 @@ func startServer(ctx context.Context, mode ServerMode) error {
 }
 
 func openAndRun(ctx context.Context, mode ServerMode, st streams.Stream, closerCh chan<- io.Closer) error {
-	rdwr, err := st.Open(ServerModeFlags[mode])
+	if mode.AccessMode() == -1 {
+		return fmt.Errorf("invalid mode")
+	}
+	rdwr, err := st.Open(mode.AccessMode())
 	if err != nil {
 		return err
 	}
@@ -117,9 +126,8 @@ func openAndRun(ctx context.Context, mode ServerMode, st streams.Stream, closerC
 		return readServer(rdwr)
 	case WriteMode:
 		return writeServer(ctx, rdwr)
-	default:
-		return nil
 	}
+	return nil
 }
 
 func readServer(r io.Reader) error {
