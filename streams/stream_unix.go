@@ -99,7 +99,7 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 }
 
 func (st *fifoStream) Close() error {
-	var err error
+	var closeErr error
 	st.once.Do(func() {
 		st.mu.Lock()
 		close(st.done)
@@ -108,13 +108,14 @@ func (st *fifoStream) Close() error {
 				// original FIFO file has been deleted.
 				// goroutines that are still blocked on open will leak.
 				st.mu.Unlock()
+				closeErr = &os.PathError{Op: "close", Path: st.name, Err: err}
 				return
 			}
 		}
 		st.mu.Unlock()
-		err = os.Remove(st.name)
+		closeErr = os.Remove(st.name)
 	})
-	return err
+	return closeErr
 }
 
 // unclog tries to unblock goroutines blocked on opening the pipe by opening it
