@@ -99,7 +99,9 @@ func getStreamName() string {
 	}
 
 	// counter (1~20bit) + pid (1~32bit) + random (12bit)
-	streamId := (uint64(streamCounter)<<max(1, bits.Len32(streamPid))|uint64(streamPid))<<12 | rand.Uint64N(1<<12)
+	streamId := uint64(streamCounter)
+	streamId = streamId<<max(1, bits.Len32(streamPid)) | uint64(streamPid)
+	streamId = streamId<<12 | rand.Uint64N(1<<12)
 
 	streamCounter++
 	if streamCounter >= 1<<20 {
