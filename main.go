@@ -49,10 +49,14 @@ func run() (code int) {
 	log.Printf("current implementation: %s\n", streams.CurrentStreamImpl)
 	for {
 		if err := startServer(ctx, mode); err != nil {
-			if errors.Is(err, ctx.Err()) {
+			switch {
+			case errors.Is(err, ErrInvalidMode):
+				// this should never happen
+				panic(err)
+			case errors.Is(err, ctx.Err()):
 				log.Println("interrupted by user")
 				return 2
-			} else {
+			default:
 				log.Println(err)
 			}
 		}
