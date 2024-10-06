@@ -84,13 +84,12 @@ func (st *fifoStream) Open(flag int) (DeadlineReadWriteCloser, error) {
 			return nil, res.err
 		}
 		info, err := res.f.Stat()
+		if err == nil && info.Mode()&os.ModeType != os.ModeNamedPipe {
+			err = &os.PathError{Op: "open", Path: st.name, Err: ErrNotAFIFO}
+		}
 		if err != nil {
 			res.f.Close()
 			return nil, err
-		}
-		if info.Mode()&os.ModeType != os.ModeNamedPipe {
-			res.f.Close()
-			return nil, &os.PathError{Op: "open", Path: st.name, Err: ErrNotAFIFO}
 		}
 		return res.f, nil
 	case <-st.done:
